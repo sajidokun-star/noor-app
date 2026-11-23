@@ -1,0 +1,371 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SolaimanLipi", "Kalpurush", "Noto Serif Bengali", sans-serif;
+  --font-bengali: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SolaimanLipi", "Kalpurush", "Noto Serif Bengali", sans-serif;
+  --font-arabic: 'Scheherazade New', 'Amiri', serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@layer base {
+  :root {
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SolaimanLipi", "Kalpurush", "Noto Serif Bengali", sans-serif;
+    --font-bengali: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SolaimanLipi", "Kalpurush", "Noto Serif Bengali", sans-serif;
+    --font-arabic: 'Scheherazade New', 'Amiri', serif;
+    --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+
+  html {
+    background-color: #F4F1EA;
+    color: #18181b;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    -webkit-tap-highlight-color: transparent;
+    scroll-behavior: smooth;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  html:lang(bn) {
+    font-family: var(--font-bengali);
+    line-height: 1.65;
+  }
+
+  html.dark {
+    background-color: #000000;
+    color: #f4f4f5;
+  }
+
+  body {
+    background-color: #F4F1EA;
+    color: #18181b;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100dvh;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    transition: background-color 200ms ease, color 200ms ease;
+  }
+
+  html:lang(bn) body {
+    font-family: var(--font-bengali);
+    line-height: 1.65;
+  }
+
+  html.dark body {
+    background-color: #000000;
+    color: #f4f4f5;
+  }
+}
+
+/* Warm, layered alabaster light atmosphere with subtle emerald & amber radial ambient glows */
+.noor-light-atmosphere {
+  background-color: #F4F1EA;
+  background-image:
+    radial-gradient(ellipse 80% 52% at 15% 0%, rgba(16, 185, 129, 0.08) 0%, transparent 65%),
+    radial-gradient(ellipse 75% 48% at 86% 2%, rgba(245, 158, 11, 0.08) 0%, transparent 65%);
+  background-attachment: fixed;
+}
+
+html.dark .noor-light-atmosphere {
+  background-color: #000000;
+  background-image: none;
+}
+
+.font-arabic {
+  font-family: var(--font-arabic);
+  line-height: 2.25;
+  direction: rtl;
+}
+
+.font-noorani,
+.font-quran {
+  font-family: 'Scheherazade New', 'Lateef', 'Noto Nastaliq Urdu', 'Amiri Quran', serif;
+  line-height: 2.6;
+  letter-spacing: 0.015em;
+  direction: rtl;
+  font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "mark" 1, "mkmk" 1;
+  text-rendering: optimizeLegibility;
+}
+
+.font-bengali {
+  font-family: var(--font-bengali);
+  line-height: 1.65;
+}
+
+.font-mono-num,
+.font-tabular {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+.font-timer {
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+}
+
+.timer-colon {
+  display: inline-block;
+  padding-inline: 0.15em;
+}
+
+/* Render Bengali numerals (১, ২, ৩...) in Unicode-safe Bengali fonts with generous ascender clearance */
+:lang(bn) .font-mono-num,
+:lang(bn) .font-tabular {
+  font-family: var(--font-bengali);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0.04em;
+  line-height: 1.65;
+  padding-top: 2px;
+}
+
+:lang(bn) .font-timer {
+  font-family: var(--font-bengali);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0.06em;
+  line-height: 1.65;
+  padding-top: 2px;
+}
+
+:lang(bn) span.font-mono-num:not(.inline-flex):not(.flex),
+:lang(bn) span.font-tabular:not(.inline-flex):not(.flex),
+:lang(bn) span.font-timer:not(.inline-flex):not(.flex) {
+  display: inline-block;
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+.pb-safe {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+
+/* Smooth iOS-like view transition */
+@keyframes panelEnter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes noorShimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+.animate-panel {
+  animation: panelEnter 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-noor-shimmer {
+  background: linear-gradient(90deg, #059669 0%, #d97706 45%, #f59e0b 60%, #059669 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: noorShimmer 2.8s linear infinite;
+}
+
+html.dark .animate-noor-shimmer {
+  background: linear-gradient(90deg, #10b981 0%, #fde68a 45%, #f59e0b 60%, #10b981 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Circular Ibadah Progress Ring CSS Animations */
+@keyframes ibadahRingMount {
+  from {
+    stroke-dashoffset: var(--ring-circumference, 226.195);
+  }
+  to {
+    stroke-dashoffset: var(--ring-offset, 226.195);
+  }
+}
+
+@keyframes ibadahRingGrowA {
+  0% {
+    transform: scale(1);
+  }
+  38% {
+    transform: scale(1.075);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes ibadahRingGrowB {
+  0% {
+    transform: scale(1);
+  }
+  38% {
+    transform: scale(1.075);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes ibadahRingRipple {
+  0% {
+    opacity: 0.6;
+    transform: scale(0.96);
+    stroke-width: 6px;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.22);
+    stroke-width: 1.5px;
+  }
+}
+
+@keyframes ibadahPercentPopA {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes ibadahPercentPopB {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes ibadahCompleteGlow {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.35));
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.72));
+  }
+}
+
+.ibadah-ring-svg {
+  transform-origin: center;
+  will-change: transform;
+}
+
+.ibadah-ring-grow-a {
+  animation: ibadahRingGrowA 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ibadah-ring-grow-b {
+  animation: ibadahRingGrowB 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ibadah-ring-arc {
+  transition:
+    stroke-dashoffset 680ms cubic-bezier(0.22, 1, 0.36, 1),
+    stroke 420ms ease,
+    filter 420ms ease;
+  animation: ibadahRingMount 720ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ibadah-ring-glow-arc {
+  transition:
+    stroke-dashoffset 680ms cubic-bezier(0.22, 1, 0.36, 1),
+    stroke 420ms ease,
+    opacity 380ms ease;
+  animation: ibadahRingMount 720ms cubic-bezier(0.22, 1, 0.36, 1);
+  filter: blur(2.5px);
+}
+
+.ibadah-ring-complete {
+  animation: ibadahCompleteGlow 2.4s ease-in-out infinite;
+}
+
+.ibadah-ring-ripple {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ibadahRingRipple 620ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ibadah-percent-pop-a {
+  animation: ibadahPercentPopA 440ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ibadah-percent-pop-b {
+  animation: ibadahPercentPopB 440ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-panel,
+  .animate-noor-shimmer,
+  .ibadah-ring-grow-a,
+  .ibadah-ring-grow-b,
+  .ibadah-ring-arc,
+  .ibadah-ring-glow-arc,
+  .ibadah-ring-complete,
+  .ibadah-ring-ripple,
+  .ibadah-percent-pop-a,
+  .ibadah-percent-pop-b {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* Adaptive scrollbars for Light and Dark modes */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F4F1EA;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: #000000;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #27272a;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}

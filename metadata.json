@@ -1,0 +1,6 @@
+{
+  "name": "Noor — All-Rounder Islamic Companion",
+  "description": "Bilingual (Bengali & English) Islamic companion featuring Al-Quran with audio & Hifz loop, Aladhan Prayer Times, Qibla Compass, Prayer & Qaza Tracker, Hadith & Fiqh, Masnoon Duas, Smart Tasbih, Ruqyah, Hijri Calendar, Zakat & Miras Calculators, Seerah Quiz, and Islamic Card Maker.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
