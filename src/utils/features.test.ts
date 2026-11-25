@@ -65,7 +65,7 @@ test('shouldTriggerPeriodicHadith respects interval and toggle', () => {
     audioUnlocked: true,
     azanWaqtAlerts: { fajr: true, dhuhr: true, asr: true, maghrib: true, isha: true },
     playAzanAudio: true,
-    muazzin: 'chime',
+    muazzin: 'makkah',
     dailyHadithAlerts: true,
     hadithIntervalMinutes: 60,
     lastHadithSentAt: '2026-11-23T08:00:00.000Z',

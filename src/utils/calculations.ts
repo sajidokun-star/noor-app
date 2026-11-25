@@ -780,8 +780,15 @@ export function parseAndValidateBackup(
     if (merged.language !== 'en' && merged.language !== 'bn') {
       merged.language = defaults.language;
     }
-    if (merged.theme !== 'dark' && merged.theme !== 'light') {
+    if (merged.theme !== 'dark' && merged.theme !== 'light' && merged.theme !== 'fancy') {
       merged.theme = defaults.theme;
+    }
+    // Migrate removed/unknown muazzin ids (e.g. the old synthetic 'chime') to the default voice.
+    if (!['makkah', 'madinah', 'mishary'].includes(merged.notifications.muazzin)) {
+      merged.notifications = {
+        ...merged.notifications,
+        muazzin: defaults.notifications.muazzin,
+      };
     }
 
     return { ok: true, state: merged };

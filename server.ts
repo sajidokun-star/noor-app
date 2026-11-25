@@ -224,6 +224,15 @@ async function startServer() {
     }
   });
 
+  // The service worker and manifest must never be served from a stale HTTP cache,
+  // otherwise PWA updates (and notification handling fixes) would not reach devices.
+  app.use((req: Request, res: Response, next) => {
+    if (req.path === '/sw.js' || req.path === '/manifest.json') {
+      res.set('Cache-Control', 'no-cache');
+    }
+    next();
+  });
+
   const distDir = path.resolve(__dirname, 'dist');
   const isProd =
     process.env.NODE_ENV === 'production' ||

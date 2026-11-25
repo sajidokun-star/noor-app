@@ -12,7 +12,12 @@ export interface MuazzinOption {
   id: MuazzinId;
   nameEn: string;
   nameBn: string;
-  audioUrl: string | null;
+  /**
+   * Candidate MP3 sources, tried in order until one plays. Put licensed Adhan files in
+   * `public/audio/adhan/` (first entry) for the most reliable, offline-capable playback;
+   * the remote URL is the fallback.
+   */
+  sources: string[];
 }
 
 export const MUAZZIN_OPTIONS: MuazzinOption[] = [
@@ -20,25 +25,19 @@ export const MUAZZIN_OPTIONS: MuazzinOption[] = [
     id: 'makkah',
     nameEn: 'Makkah (Al-Haram)',
     nameBn: 'মক্কা (মসজিদুল হারাম)',
-    audioUrl: 'https://www.islamcan.com/audio/adhan/azan1.mp3',
+    sources: ['/audio/adhan/makkah.mp3', 'https://www.islamcan.com/audio/adhan/azan1.mp3'],
   },
   {
     id: 'madinah',
     nameEn: 'Madinah (Al-Nabawi)',
     nameBn: 'মদিনা (মসজিদে নববী)',
-    audioUrl: 'https://www.islamcan.com/audio/adhan/azan2.mp3',
+    sources: ['/audio/adhan/madinah.mp3', 'https://www.islamcan.com/audio/adhan/azan2.mp3'],
   },
   {
     id: 'mishary',
     nameEn: 'Mishary Rashid Alafasy',
     nameBn: 'মিশারি রশিদ আল-আফাসি',
-    audioUrl: 'https://www.islamcan.com/audio/adhan/azan6.mp3',
-  },
-  {
-    id: 'chime',
-    nameEn: 'Gentle Harmonic Chime (Offline)',
-    nameBn: 'সফট হারমোনিক চাইম (অফলাইন)',
-    audioUrl: null,
+    sources: ['/audio/adhan/mishary.mp3', 'https://www.islamcan.com/audio/adhan/azan6.mp3'],
   },
 ];
 
@@ -126,49 +125,5 @@ export function buildPrayerNotificationCopy(
   return {
     title: `Time for ${names[waqt].en} Prayer`,
     body: `${names[waqt].en} time (${timeLabel}) has begun. Hayya 'alas-Salah.`,
-  };
-}
-
-/**
- * Plays a calm, spiritual Web Audio harmonic chime fallback when Azan MP3 cannot autoplay
- * or when offline chime mode is selected.
- */
-export function playAzanFallbackChime(): () => void {
-  if (typeof window === 'undefined') return () => {};
-  const AudioCtx =
-    window.AudioContext ||
-    (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!AudioCtx) return () => {};
-
-  let stopped = false;
-  const ctx = new AudioCtx();
-  // Hijaz-inspired gentle ascending modal notes (D4, Eb4, F#4, G4, A4, F#4, D4)
-  const notes = [293.66, 311.13, 369.99, 392.0, 440.0, 369.99, 293.66];
-  const timers: number[] = [];
-
-  notes.forEach((freq, i) => {
-    const id = window.setTimeout(() => {
-      if (stopped || ctx.state === 'closed') return;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, ctx.currentTime);
-      gain.gain.setValueAtTime(0.001, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.14, ctx.currentTime + 0.08);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.1);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 1.15);
-    }, i * 520);
-    timers.push(id);
-  });
-
-  return () => {
-    stopped = true;
-    timers.forEach((t) => window.clearTimeout(t));
-    if (ctx.state !== 'closed') {
-      ctx.close().catch(() => {});
-    }
   };
 }

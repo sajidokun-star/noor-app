@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import {
   Bell,
@@ -10,6 +10,7 @@ import {
   Moon,
   Sparkles,
   Sun,
+  Volume2,
   VolumeX,
   X,
 } from 'lucide-react';
@@ -28,11 +29,12 @@ import {
   buildPrayerNotificationCopy,
   MUAZZIN_OPTIONS,
   pickDailyHadithForNotification,
-  playAzanFallbackChime,
   shouldTriggerPeriodicHadith,
   shouldTriggerPrayerAlert,
 } from './utils/notifications';
 import { getActiveDisplayIdentity } from './utils/accounts';
+import { installAudioUnlock, playSourceChain, releaseAudio, unlockAudio } from './utils/audioManager';
+import { showAppNotification } from './utils/pwa';
 import { NoorLogo, UserAvatarBadge } from './components/NoorLogo';
 import { SplashScreen } from './components/SplashScreen';
 import { HomeView } from './components/HomeView';
@@ -69,17 +71,45 @@ export default function App() {
   const { state, updateState, exportBackupJson, importBackupJson, resetAllData } =
     usePersistentState();
   const lang = state.language;
-  const isDark = state.theme === 'dark';
+  const theme = state.theme;
+  const isFancy = theme === 'fancy';
+  // Fancy Mode is a dark variant: it keeps the `dark` class so every dark: utility applies,
+  // then `html.fancy` (see index.css) re-skins surfaces and accents.
+  const isDark = theme !== 'light';
 
   useEffect(() => {
     const root = document.documentElement;
     root.classList.toggle('dark', isDark);
+    root.classList.toggle('fancy', isFancy);
+    root.dataset.theme = theme;
     root.lang = lang;
     const metaTheme = document.querySelector('meta[name="theme-color"]');
     if (metaTheme) {
-      metaTheme.setAttribute('content', isDark ? '#000000' : '#F4F1EA');
+      metaTheme.setAttribute('content', isFancy ? '#2D0C38' : isDark ? '#000000' : '#F4F1EA');
     }
-  }, [isDark, lang]);
+  }, [theme, isDark, isFancy, lang]);
+
+  // Unlock the shared audio element on the first user gesture (required by iOS Safari),
+  // and open the right page when a notification is tapped while the app is already open.
+  useEffect(() => {
+    const removeUnlock = installAudioUnlock();
+    const onSwMessage = (event: MessageEvent) => {
+      const data = event.data as { type?: string; url?: string } | undefined;
+      if (data?.type === 'noor:navigate' && typeof data.url === 'string') {
+        const hash = new URL(data.url, window.location.origin).hash;
+        if (hash) window.location.hash = hash;
+      }
+    };
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', onSwMessage);
+    }
+    return () => {
+      removeUnlock();
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', onSwMessage);
+      }
+    };
+  }, []);
 
   const [showSplash, setShowSplash] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -100,9 +130,8 @@ export default function App() {
   );
 
   // Azan audio & notification alerts state
-  const azanAudioRef = useRef<HTMLAudioElement | null>(null);
-  const chimeStopRef = useRef<(() => void) | null>(null);
   const [isAzanPlaying, setIsAzanPlaying] = useState(false);
+  const [azanIssue, setAzanIssue] = useState<'needs-tap' | 'failed' | null>(null);
   const [activeAzanBanner, setActiveAzanBanner] = useState<{
     title: string;
     body: string;
@@ -213,67 +242,49 @@ export default function App() {
   ]);
 
   const stopAzanAudioOnly = useCallback(() => {
-    if (azanAudioRef.current) {
-      azanAudioRef.current.pause();
-      azanAudioRef.current.currentTime = 0;
-    }
-    if (chimeStopRef.current) {
-      chimeStopRef.current();
-      chimeStopRef.current = null;
-    }
+    releaseAudio('azan');
   }, []);
 
   const stopAzan = useCallback(() => {
     stopAzanAudioOnly();
     setIsAzanPlaying(false);
+    setAzanIssue(null);
     setActiveAzanBanner(null);
   }, [stopAzanAudioOnly]);
 
+  // Plays the selected Muazzin's real recorded Azan on the single shared audio element.
+  // Anything already playing (previous Azan, Quran, Ruqyah) is stopped first, so two
+  // sounds can never overlap. There is no synthetic/oscillator fallback.
   const playAzanAlarm = useCallback(() => {
-    stopAzanAudioOnly();
+    setAzanIssue(null);
     if (!state.notifications.playAzanAudio) {
+      stopAzanAudioOnly();
       setIsAzanPlaying(true);
       return;
     }
     const muazzin =
       MUAZZIN_OPTIONS.find((m) => m.id === state.notifications.muazzin) ?? MUAZZIN_OPTIONS[0];
     setIsAzanPlaying(true);
-
-    if (muazzin.audioUrl) {
-      if (!azanAudioRef.current) {
-        azanAudioRef.current = new Audio();
-      }
-      const audio = azanAudioRef.current;
-      audio.src = muazzin.audioUrl;
-      audio.onended = () => {
+    playSourceChain('azan', muazzin.sources, () => setIsAzanPlaying(false), {
+      onEnded: () => setIsAzanPlaying(false),
+      onBlocked: () => setAzanIssue('needs-tap'),
+      onFailed: () => {
         setIsAzanPlaying(false);
-      };
-      audio.play().catch(() => {
-        chimeStopRef.current = playAzanFallbackChime();
-      });
-    } else {
-      chimeStopRef.current = playAzanFallbackChime();
-    }
+        setAzanIssue('failed');
+      },
+    });
   }, [stopAzanAudioOnly, state.notifications.playAzanAudio, state.notifications.muazzin]);
 
   const sendBrowserNotification = useCallback(
     (title: string, body: string, targetRoute?: AppRoute) => {
-      if (typeof window === 'undefined' || !('Notification' in window)) return;
-      if (Notification.permission !== 'granted') return;
-      try {
-        const n = new Notification(title, { body });
-        n.onclick = () => {
-          window.focus();
-          if (targetRoute) {
-            navigateTo(targetRoute);
-          }
-          n.close();
-        };
-      } catch {
-        // ignore if environment restricts Notification constructor
-      }
+      void showAppNotification({
+        title,
+        body,
+        tag: targetRoute ? `noor-${targetRoute}` : undefined,
+        hash: targetRoute ? routeToHash(targetRoute) : undefined,
+      });
     },
-    [navigateTo]
+    []
   );
 
   const triggerPrayerAzan = useCallback(
@@ -314,21 +325,8 @@ export default function App() {
   }, [lang, sendBrowserNotification, updateState]);
 
   const requestNotificationPermissions = useCallback(async () => {
-    // Unlock Web Audio context on user gesture
-    try {
-      const AudioCtx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (AudioCtx) {
-        const ctx = new AudioCtx();
-        if (ctx.state === 'suspended') {
-          await ctx.resume();
-        }
-        ctx.close().catch(() => {});
-      }
-    } catch {
-      // ignore
-    }
+    // Unlock the shared audio element inside this user gesture (needed on iOS Safari)
+    unlockAudio();
 
     if (typeof window === 'undefined' || !('Notification' in window)) {
       updateState((prev) => ({
@@ -383,12 +381,7 @@ export default function App() {
 
   useEffect(() => {
     return () => {
-      if (azanAudioRef.current) {
-        azanAudioRef.current.pause();
-      }
-      if (chimeStopRef.current) {
-        chimeStopRef.current();
-      }
+      releaseAudio('azan');
     };
   }, []);
 
@@ -481,6 +474,28 @@ export default function App() {
         <rect width="100%" height="100%" fill="url(#noorLightLattice)" />
       </svg>
 
+      {/* Fancy Mode: warm golden lantern glow + subtle gold Islamic geometric lattice (hidden in other themes) */}
+      <div className="noor-fancy-glow" aria-hidden="true" />
+      <svg className="noor-fancy-lattice" aria-hidden="true">
+        <defs>
+          <pattern id="noorFancyLattice" width="72" height="72" patternUnits="userSpaceOnUse">
+            <rect x="18" y="18" width="36" height="36" fill="none" stroke="#F5B942" strokeWidth="0.8" />
+            <rect
+              x="18"
+              y="18"
+              width="36"
+              height="36"
+              transform="rotate(45 36 36)"
+              fill="none"
+              stroke="#F5B942"
+              strokeWidth="0.8"
+            />
+            <circle cx="36" cy="36" r="6" fill="none" stroke="#F5B942" strokeWidth="0.6" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#noorFancyLattice)" />
+      </svg>
+
       {/* Animated Splash Screen */}
       <AnimatePresence>
         {showSplash && (
@@ -489,7 +504,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* 3-Zone Top Bar */}
-      <header className="sticky top-0 z-30 min-h-[52px] md:h-16 pt-safe bg-[#F4F1EA]/85 dark:bg-black/95 backdrop-blur-md border-b border-stone-200/80 dark:border-white/10">
+      <header className="noor-glass-bar sticky top-0 z-30 min-h-[52px] md:h-16 pt-safe bg-[#F4F1EA]/85 dark:bg-black/95 backdrop-blur-md border-b border-stone-200/80 dark:border-white/10">
         <div className="max-w-7xl mx-auto h-[52px] md:h-16 px-3 sm:px-6 flex items-center justify-between gap-2 sm:gap-6">
           {/* Zone 1: Custom SVG NoorLogo + Brand Title */}
           <button
@@ -530,19 +545,27 @@ export default function App() {
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               type="button"
-              onClick={() => updateState({ theme: isDark ? 'light' : 'dark' })}
+              onClick={() =>
+                updateState({
+                  theme: theme === 'light' ? 'dark' : theme === 'dark' ? 'fancy' : 'light',
+                })
+              }
               data-testid="theme-toggle-btn"
               aria-label={
-                isDark
-                  ? t(lang, 'Switch to Light Mode', 'লাইট মোড চালু করুন')
-                  : t(lang, 'Switch to Dark Mode', 'ডার্ক মোড চালু করুন')
+                theme === 'light'
+                  ? t(lang, 'Switch to AMOLED Dark Mode', 'ডার্ক মোড চালু করুন')
+                  : theme === 'dark'
+                  ? t(lang, 'Switch to Fancy Mode', 'ফ্যান্সি মোড চালু করুন')
+                  : t(lang, 'Switch to Light Mode', 'লাইট মোড চালু করুন')
               }
-              className="w-9 h-9 rounded-xl bg-white/90 dark:bg-[#0B0B0D] border border-stone-200/80 dark:border-white/10 hover:border-stone-300 dark:hover:border-white/25 text-zinc-700 dark:text-amber-300 flex items-center justify-center transition-colors shadow-[0_2px_8px_rgba(16,24,40,0.05)] dark:shadow-none"
+              className="noor-press w-9 h-9 rounded-xl bg-white/90 dark:bg-[#0B0B0D] border border-stone-200/80 dark:border-white/10 hover:border-stone-300 dark:hover:border-white/25 text-zinc-700 dark:text-amber-300 flex items-center justify-center transition-colors shadow-[0_2px_8px_rgba(16,24,40,0.05)] dark:shadow-none"
             >
-              {isDark ? (
+              {theme === 'light' ? (
                 <Sun className="w-4 h-4" aria-hidden="true" />
-              ) : (
+              ) : theme === 'dark' ? (
                 <Moon className="w-4 h-4" aria-hidden="true" />
+              ) : (
+                <Sparkles className="w-4 h-4" aria-hidden="true" />
               )}
             </button>
 
@@ -612,7 +635,27 @@ export default function App() {
                   {activeAzanBanner.title}
                 </p>
                 <p className="text-xs text-zinc-600 dark:text-zinc-300">{activeAzanBanner.body}</p>
+                {azanIssue === 'failed' && (
+                  <p className="text-[11px] text-red-600 dark:text-red-300">
+                    {t(
+                      lang,
+                      'Azan audio could not be loaded. Check your connection or add Adhan files to public/audio/adhan.',
+                      'আজানের অডিও লোড হয়নি। ইন্টারনেট সংযোগ দেখুন।'
+                    )}
+                  </p>
+                )}
               </div>
+              {azanIssue === 'needs-tap' && (
+                <button
+                  type="button"
+                  onClick={playAzanAlarm}
+                  data-testid="banner-play-azan-btn"
+                  className="noor-press px-4 py-2 min-h-[40px] rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white dark:text-black font-semibold text-xs inline-flex items-center gap-1.5 self-start sm:self-center shrink-0"
+                >
+                  <Volume2 className="w-4 h-4" />
+                  {t(lang, 'Tap to play Azan', 'আজান শুনতে ট্যাপ করুন')}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={stopAzan}
@@ -673,7 +716,10 @@ export default function App() {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+            transition={{
+              y: { type: 'spring', stiffness: 420, damping: 34, mass: 0.8 },
+              opacity: { duration: 0.18, ease: [0.16, 1, 0.3, 1] },
+            }}
           >
             {route === 'home' && (
               <HomeView
@@ -820,7 +866,7 @@ export default function App() {
       {/* Mobile Bottom Navigation Bar (Home, Quran, Prayer, Tasbih, All Tools) */}
       <nav
         aria-label="Mobile bottom navigation"
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 pb-safe bg-[#F4F1EA]/90 dark:bg-black/95 backdrop-blur-md border-t border-stone-200/80 dark:border-white/10 grid grid-cols-5 items-center"
+        className="noor-glass-bar md:hidden fixed bottom-0 left-0 right-0 z-40 h-16 pb-safe bg-[#F4F1EA]/90 dark:bg-black/95 backdrop-blur-md border-t border-stone-200/80 dark:border-white/10 grid grid-cols-5 items-center"
       >
         {primaryNavItems.map((item) => {
           const Icon = item.icon;
@@ -837,7 +883,24 @@ export default function App() {
                   : 'text-zinc-500 dark:text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
               }`}
             >
-              <Icon className="w-5 h-5" aria-hidden="true" />
+              <span className="relative w-12 h-7 flex items-center justify-center">
+                {active && (
+                  <motion.span
+                    layoutId="noor-nav-pill"
+                    className="absolute inset-0 rounded-full bg-emerald-500/15"
+                    transition={{ type: 'spring', stiffness: 500, damping: 36 }}
+                    aria-hidden="true"
+                  />
+                )}
+                <motion.span
+                  className="relative flex items-center justify-center"
+                  animate={{ scale: active ? 1.08 : 1 }}
+                  whileTap={{ scale: 0.88 }}
+                  transition={{ type: 'spring', stiffness: 520, damping: 22 }}
+                >
+                  <Icon className="w-5 h-5" aria-hidden="true" />
+                </motion.span>
+              </span>
               <span className="text-[10px] font-medium whitespace-nowrap">
                 {lang === 'bn' ? item.bn : item.en}
               </span>

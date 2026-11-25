@@ -184,4 +184,20 @@ test('JSON backup validator accepts valid partial backup and rejects malformed d
   if (invalidTheme.ok) {
     assert.equal(invalidTheme.state.theme, 'dark');
   }
+
+  const fancyTheme = parseAndValidateBackup(JSON.stringify({ theme: 'fancy' }), defaults);
+  assert.equal(fancyTheme.ok, true);
+  if (fancyTheme.ok) {
+    assert.equal(fancyTheme.state.theme, 'fancy');
+  }
+
+  // Legacy saved muazzin 'chime' (removed synthetic tone) migrates to the default voice.
+  const legacyChime = parseAndValidateBackup(
+    JSON.stringify({ notifications: { muazzin: 'chime' } }),
+    defaults
+  );
+  assert.equal(legacyChime.ok, true);
+  if (legacyChime.ok) {
+    assert.equal(legacyChime.state.notifications.muazzin, defaults.notifications.muazzin);
+  }
 });

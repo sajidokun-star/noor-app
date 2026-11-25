@@ -19,6 +19,7 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
+import { claimAudio, releaseAudio } from '../utils/audioManager';
 import type {
   AppPersistedState,
   AyahEntry,
@@ -413,10 +414,7 @@ export const QuranView: React.FC<QuranViewProps> = ({
 
   // Audio playback logic
   const stopAudio = () => {
-    if (audioRef.current) {
-      audioRef.current.pause();
-      audioRef.current.src = '';
-    }
+    releaseAudio('quran');
     setIsPlaying(false);
     setPlayingAyahIndex(null);
   };
@@ -430,10 +428,12 @@ export const QuranView: React.FC<QuranViewProps> = ({
     if (selectedSurah) {
       recordLastRead(selectedSurah, targetAyah.numberInSurah);
     }
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-    }
-    const audio = audioRef.current;
+    // Claim the single shared audio element: stops any Azan/Ruqyah/previous ayah first.
+    const audio = claimAudio('quran', () => {
+      setIsPlaying(false);
+      setPlayingAyahIndex(null);
+    });
+    audioRef.current = audio;
     audio.src = targetAyah.audioUrl;
     setPlayingAyahIndex(index);
     setRemainingRepeats(initialRepeatOverride ?? repeatCount - 1);
@@ -502,9 +502,7 @@ export const QuranView: React.FC<QuranViewProps> = ({
 
   useEffect(() => {
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
+      releaseAudio('quran');
     };
   }, []);
 

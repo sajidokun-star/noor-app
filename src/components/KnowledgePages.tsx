@@ -18,8 +18,8 @@ import {
   RotateCcw,
   Search,
   Sparkles,
-  Volume2,
 } from 'lucide-react';
+import { claimAudio, releaseAudio } from '../utils/audioManager';
 import type {
   AppPersistedState,
   DhikrItem,
@@ -791,34 +791,7 @@ export const TasbihPage: React.FC<{
   const [newDhikrArabic, setNewDhikrArabic] = useState('');
   const [newDhikrTranslit, setNewDhikrTranslit] = useState('');
   const [newDhikrMeaning, setNewDhikrMeaning] = useState('');
-  const audioCtxRef = useRef<AudioContext | null>(null);
   const swipeStartXRef = useRef<number | null>(null);
-
-  const playClickTone = (isTargetReached: boolean) => {
-    if (!state.tasbihSound) return;
-    try {
-      const AudioCtx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (!AudioCtx) return;
-      if (!audioCtxRef.current) {
-        audioCtxRef.current = new AudioCtx();
-      }
-      const ctx = audioCtxRef.current;
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = isTargetReached ? 'triangle' : 'sine';
-      osc.frequency.setValueAtTime(isTargetReached ? 880 : 520, ctx.currentTime);
-      gain.gain.setValueAtTime(0.08, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (isTargetReached ? 0.22 : 0.06));
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + (isTargetReached ? 0.23 : 0.07));
-    } catch {
-      // ignore
-    }
-  };
 
   const allDhikrs = useMemo(
     () => [...DEFAULT_DHIKR_LIST, ...state.customDhikrs],
@@ -845,7 +818,6 @@ export const TasbihPage: React.FC<{
     if (state.tasbihHaptic && typeof navigator !== 'undefined' && 'vibrate' in navigator) {
       navigator.vibrate(hitTarget ? [40, 30, 60] : 20);
     }
-    playClickTone(hitTarget);
 
     onUpdateState((prev) => ({
       ...prev,
@@ -1046,19 +1018,7 @@ export const TasbihPage: React.FC<{
 
         <div className="lg:col-span-5 space-y-5">
           {/* iOS Grouped Feedback Toggles */}
-          <IOSSection title={t(lang, 'Feedback Preferences', 'সাউন্ড ও ভাইব্রেশন')}>
-            <IOSRow
-              icon={<Volume2 className="w-4 h-4" />}
-              iconBg="bg-[#34C759]"
-              title={t(lang, 'Click Sound', 'ক্লিক শব্দ')}
-              rightElement={
-                <IOSSwitch
-                  checked={state.tasbihSound}
-                  onChange={(next) => onUpdateState({ tasbihSound: next })}
-                  ariaLabel="Toggle Tasbih sound"
-                />
-              }
-            />
+          <IOSSection title={t(lang, 'Feedback Preferences', 'ভাইব্রেশন')}>
             <IOSRow
               icon={<Sparkles className="w-4 h-4" />}
               iconBg="bg-[#FF9500]"
@@ -1218,23 +1178,20 @@ export const RuqyahPage: React.FC<{
 
   useEffect(() => {
     return () => {
-      if (ruqyahAudioRef.current) {
-        ruqyahAudioRef.current.pause();
-      }
+      releaseAudio('ruqyah');
     };
   }, []);
 
   const playRuqyah = (itemId: string, urls: string[], idx: number = 0) => {
     if (urls.length === 0) return;
-    if (playingRuqyahId === itemId && ruqyahAudioRef.current) {
-      ruqyahAudioRef.current.pause();
+    if (playingRuqyahId === itemId) {
+      releaseAudio('ruqyah');
       setPlayingRuqyahId(null);
       return;
     }
-    if (!ruqyahAudioRef.current) {
-      ruqyahAudioRef.current = new Audio();
-    }
-    const audio = ruqyahAudioRef.current;
+    // Claim the single shared audio element: stops any Azan/Quran/previous track first.
+    const audio = claimAudio('ruqyah', () => setPlayingRuqyahId(null));
+    ruqyahAudioRef.current = audio;
     audio.src = urls[idx];
     setPlayingRuqyahId(itemId);
     setRuqyahTrackIndex(idx);

@@ -1,6 +1,6 @@
 export type Language = 'en' | 'bn';
 
-export type ThemeMode = 'dark' | 'light';
+export type ThemeMode = 'dark' | 'light' | 'fancy';
 
 export type NavTab = 'home' | 'quran' | 'prayer' | 'knowledge' | 'tools';
 
@@ -66,7 +66,7 @@ export interface LastReadPosition {
   updatedAt: string;
 }
 
-export type MuazzinId = 'makkah' | 'madinah' | 'mishary' | 'chime';
+export type MuazzinId = 'makkah' | 'madinah' | 'mishary';
 
 export interface NotificationSettings {
   permissionGranted: boolean;

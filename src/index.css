@@ -27,6 +27,9 @@
     scroll-behavior: smooth;
     max-width: 100%;
     overflow-x: hidden;
+    /* Stop accidental pull-to-refresh / rubber-band bounce in PWAs and APK WebView wrappers */
+    overscroll-behavior-y: none;
+    -webkit-text-size-adjust: 100%;
   }
 
   html:lang(bn) {
@@ -49,7 +52,17 @@
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
+    overscroll-behavior-y: none;
     transition: background-color 200ms ease, color 200ms ease;
+  }
+
+  /* Removes the 300ms tap delay / double-tap zoom on interactive controls (native feel) */
+  button,
+  a,
+  [role='button'],
+  [role='switch'],
+  [role='radio'] {
+    touch-action: manipulation;
   }
 
   html:lang(bn) body {
@@ -368,4 +381,291 @@ html.dark ::-webkit-scrollbar-thumb {
 
 html.dark ::-webkit-scrollbar-thumb:hover {
   background: #3f3f46;
+}
+
+
+/* ==========================================================================
+   iOS-native polish (all themes)
+   ========================================================================== */
+
+/* Translucent "chrome" bars (header / tab bar) like UIKit blur materials */
+.noor-glass-bar {
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
+/* Spring press feedback. Uses the individual `scale` property so it never fights with
+   `transform`-based centering/translate utilities. Skips buttons that define their own active scale. */
+button:not(:disabled):not([class*='active:scale']):not([role='switch']),
+.noor-press {
+  transition: scale 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+button:not(:disabled):not([class*='active:scale']):not([role='switch']):active,
+.noor-press:active {
+  scale: 0.965;
+  transition-duration: 90ms;
+}
+
+/* Subtle top-edge highlight on AMOLED cards for depth (keeps pure-black background) */
+html.dark:not(.fancy) [class*='dark:bg-[#09090B]' i] {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+/* Keep iOS Safari from zooming into inputs on focus (it zooms when font-size < 16px) */
+@supports (-webkit-touch-callout: none) {
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
+/* ==========================================================================
+   FANCY MODE: Royal Velvet & Gold
+   html.fancy is always combined with html.dark, so every `dark:` utility already
+   applies. These unlayered rules then re-skin surfaces and accents.
+   Palette: velvet #2D0C38 -> #120419, gold #F5B942, bronze #B07A34
+   ========================================================================== */
+
+.noor-fancy-glow,
+.noor-fancy-lattice {
+  display: none;
+}
+
+html.fancy {
+  color-scheme: dark;
+  background-color: #120419;
+  color: #f7eef9;
+  --fancy-gold: #f5b942;
+  --fancy-gold-soft: #ffd071;
+  --fancy-velvet-top: #2d0c38;
+  --fancy-velvet-bottom: #120419;
+}
+
+html.fancy body {
+  background-color: #120419;
+  color: #f7eef9;
+}
+
+html.fancy ::selection {
+  background: rgba(245, 185, 66, 0.35);
+  color: #fff;
+}
+
+/* Velvet gradient background with a warm golden lantern glow at the top */
+html.fancy .noor-light-atmosphere {
+  background-color: #120419;
+  background-image:
+    radial-gradient(ellipse 75% 34% at 50% -6%, rgba(245, 185, 66, 0.34) 0%, rgba(245, 185, 66, 0.12) 46%, transparent 74%),
+    radial-gradient(ellipse 60% 40% at 88% 108%, rgba(176, 122, 52, 0.14) 0%, transparent 70%),
+    linear-gradient(180deg, #2d0c38 0%, #120419 100%);
+  background-attachment: fixed;
+}
+
+html.fancy .noor-fancy-glow {
+  display: block;
+  position: fixed;
+  top: -140px;
+  left: 50%;
+  width: min(720px, 120vw);
+  height: 320px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at 50% 30%, rgba(255, 208, 113, 0.30) 0%, rgba(245, 185, 66, 0.10) 45%, transparent 72%);
+  filter: blur(14px);
+  pointer-events: none;
+  z-index: 0;
+  animation: noorLanternBreath 7s ease-in-out infinite;
+}
+
+html.fancy .noor-fancy-lattice {
+  display: block;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.07;
+  pointer-events: none;
+  z-index: 0;
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.55) 45%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0%, rgba(0, 0, 0, 0.55) 45%, transparent 100%);
+}
+
+@keyframes noorLanternBreath {
+  0%,
+  100% {
+    opacity: 0.85;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Glassmorphic cards (backdrop-blur-md equivalent, with gold hairline + depth) */
+html.fancy [class*='dark:bg-[#09090B]' i],
+html.fancy [class*='dark:bg-[#1C1C1E]' i],
+html.fancy [class*='dark:bg-[#111113]' i],
+html.fancy [class*='dark:bg-[#0B0B0D]' i] {
+  background-color: rgba(255, 255, 255, 0.055);
+  background-image: linear-gradient(150deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.025) 100%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  border-color: rgba(245, 185, 66, 0.2);
+  box-shadow:
+    0 14px 34px -14px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 236, 200, 0.09);
+}
+
+/* Inner tiles / inputs / chips that were pure black become translucent velvet wells */
+html.fancy [class*='dark:bg-black']:not(:where(.noor-light-atmosphere)) {
+  background-color: rgba(20, 5, 28, 0.55);
+}
+
+/* Header & tab bar: translucent velvet glass */
+html.fancy [class*='dark:bg-black/95'],
+html.fancy [class*='dark:bg-black/90'] {
+  background-color: rgba(38, 10, 50, 0.72);
+  border-color: rgba(245, 185, 66, 0.18);
+}
+
+/* Modal / sheet overlays stay dark scrims */
+html.fancy [class*='dark:bg-black/60'],
+html.fancy [class*='dark:bg-black/70'],
+html.fancy [class*='dark:bg-black/80'] {
+  background-color: rgba(12, 2, 18, 0.72);
+}
+
+html.fancy [class*='dark:border-white/10'],
+html.fancy [class*='dark:border-white/5'],
+html.fancy [class*='dark:border-white/[0.08]'] {
+  border-color: rgba(245, 185, 66, 0.16);
+}
+
+html.fancy [class*='dark:divide-white'] > :not(:last-child) {
+  border-color: rgba(245, 185, 66, 0.12);
+}
+
+html.fancy [class*='dark:text-zinc-400'],
+html.fancy [class*='dark:text-zinc-500'] {
+  color: rgba(238, 222, 242, 0.68);
+}
+
+/* ---- Emerald -> vibrant golden-yellow accents ---- */
+html.fancy :is([class^='text-emerald-'], [class*=' text-emerald-'], [class^='dark:text-emerald-'], [class*=' dark:text-emerald-']) {
+  color: #f5b942;
+}
+
+html.fancy [class*='hover:text-emerald']:hover,
+html.fancy .group:hover [class*='group-hover:text-emerald'] {
+  color: #ffd071;
+}
+
+html.fancy :is([class^='border-emerald-'], [class*=' border-emerald-'], [class^='dark:border-emerald-'], [class*=' dark:border-emerald-']) {
+  border-color: rgba(245, 185, 66, 0.45);
+}
+
+html.fancy [class*='hover:border-emerald']:hover,
+html.fancy [class*='focus:border-emerald']:focus {
+  border-color: rgba(245, 185, 66, 0.8);
+}
+
+html.fancy :is([class^='stroke-emerald-'], [class*=' stroke-emerald-'], [class^='dark:stroke-emerald-'], [class*=' dark:stroke-emerald-']) {
+  stroke: #f5b942;
+}
+
+html.fancy [class*='accent-emerald'] {
+  accent-color: #f5b942;
+}
+
+/* Soft tinted backgrounds (emerald/xx) -> warm gold tint */
+html.fancy :is(
+    [class^='bg-emerald-500/'], [class*=' bg-emerald-500/'],
+    [class^='bg-emerald-400/'], [class*=' bg-emerald-400/'],
+    [class^='bg-emerald-600/'], [class*=' bg-emerald-600/'],
+    [class^='dark:bg-emerald-500/'], [class*=' dark:bg-emerald-500/'],
+    [class^='dark:bg-emerald-400/'], [class*=' dark:bg-emerald-400/'],
+    [class^='dark:bg-emerald-900/'], [class*=' dark:bg-emerald-900/'],
+    [class^='bg-emerald-50'], [class*=' bg-emerald-50']
+  ) {
+  background-color: rgba(245, 185, 66, 0.15);
+}
+
+/* Solid emerald buttons / chips -> vibrant gold with dark velvet text */
+html.fancy :is(
+    [class~='bg-emerald-400'], [class~='bg-emerald-500'], [class~='bg-emerald-600'], [class~='bg-emerald-700'],
+    [class~='dark:bg-emerald-400'], [class~='dark:bg-emerald-500'], [class~='dark:bg-emerald-600'],
+    [class*='bg-[#34C759]' i]
+  ) {
+  background-color: #f5b942;
+  color: #2a0b33;
+}
+
+html.fancy :is([class*='hover:bg-emerald-400'], [class*='hover:bg-emerald-500'], [class*='hover:bg-emerald-600']):hover {
+  background-color: #ffd071;
+}
+
+html.fancy :focus-visible {
+  outline-color: #f5b942;
+}
+
+/* ---- Warm bronze-gold prayer countdown banner ---- */
+html.fancy .noor-hero-card {
+  background-color: rgba(120, 76, 30, 0.5);
+  background-image:
+    radial-gradient(ellipse 70% 90% at 12% 0%, rgba(255, 208, 113, 0.30) 0%, transparent 62%),
+    linear-gradient(135deg, rgba(176, 122, 52, 0.62) 0%, rgba(116, 72, 30, 0.58) 48%, rgba(52, 16, 56, 0.72) 100%);
+  border-color: rgba(255, 208, 113, 0.38);
+  box-shadow:
+    0 22px 46px -18px rgba(0, 0, 0, 0.65),
+    0 0 0 1px rgba(245, 185, 66, 0.08),
+    inset 0 1px 0 rgba(255, 236, 200, 0.22);
+}
+
+html.fancy .noor-hero-card :is([class*='dark:text-zinc-400'], [class*='dark:text-zinc-500'], [class*='dark:text-zinc-300'], [class*='text-zinc-500'], [class*='text-zinc-600']) {
+  color: rgba(255, 238, 208, 0.82);
+}
+
+html.fancy .noor-hero-card .font-timer {
+  color: #ffd071;
+  text-shadow: 0 0 22px rgba(245, 185, 66, 0.5);
+}
+
+/* ---- Segmented control / switches in Fancy Mode ---- */
+html.fancy .noor-seg {
+  background-color: rgba(255, 255, 255, 0.09);
+}
+
+html.fancy .noor-seg-thumb {
+  background-color: #f5b942;
+  box-shadow: 0 4px 14px rgba(245, 185, 66, 0.4);
+}
+
+html.fancy .noor-seg-active {
+  color: #2a0b33;
+}
+
+html.fancy::-webkit-scrollbar-track,
+html.fancy ::-webkit-scrollbar-track {
+  background: #120419;
+}
+
+html.fancy ::-webkit-scrollbar-thumb {
+  background: rgba(245, 185, 66, 0.35);
+}
+
+html.fancy ::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 185, 66, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.fancy .noor-fancy-glow {
+    animation: none;
+  }
+
+  button,
+  .noor-press,
+  .noor-seg-thumb,
+  .noor-switch-thumb {
+    transition-duration: 0.01ms !important;
+  }
 }

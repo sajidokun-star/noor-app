@@ -118,7 +118,7 @@ export const HomeView: React.FC<HomeViewProps> = ({
       </section>
 
       {/* Primary Hero Focal Anchor: Next Prayer & Hijri Overview + 5-Waqt Checklist */}
-      <section className="rounded-3xl bg-white/90 dark:bg-[#09090B] backdrop-blur-md border border-stone-200/80 dark:border-white/10 p-4 sm:p-8 shadow-[0_4px_20px_-4px_rgba(16,24,40,0.06)] dark:shadow-none">
+      <section className="noor-hero-card rounded-3xl bg-white/90 dark:bg-[#09090B] backdrop-blur-md border border-stone-200/80 dark:border-white/10 p-4 sm:p-8 shadow-[0_4px_20px_-4px_rgba(16,24,40,0.06)] dark:shadow-none">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-center">
           <div className="lg:col-span-7 space-y-4 min-w-0">
             <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-zinc-600 dark:text-zinc-400">

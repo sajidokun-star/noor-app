@@ -8,6 +8,7 @@ import type {
 } from '../types/islamic';
 import type { AppRoute } from '../utils/routes';
 import { MUAZZIN_OPTIONS } from '../utils/notifications';
+import { needsIOSInstallForNotifications } from '../utils/pwa';
 import { formatTime12h } from '../utils/calculations';
 import { formatNum, t, WAQT_LABELS } from '../utils/i18n';
 import { PageHeader } from './PageHeader';
@@ -121,6 +122,20 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
         onNavigate={onNavigate}
       />
 
+      {needsIOSInstallForNotifications() && (
+        <div
+          role="note"
+          data-testid="ios-install-hint"
+          className="rounded-2xl border border-amber-300/60 dark:border-amber-400/30 bg-amber-50 dark:bg-amber-400/10 px-4 py-3 text-[13px] leading-relaxed text-amber-900 dark:text-amber-200"
+        >
+          {t(
+            lang,
+            'On iPhone, notifications only work after you install Noor: tap Share, then "Add to Home Screen", and open Noor from the Home Screen icon.',
+            'আইফোনে নোটিফিকেশন পেতে Noor ইনস্টল করতে হবে: Share চাপুন, তারপর "Add to Home Screen" নির্বাচন করে হোম স্ক্রিনের আইকন থেকে অ্যাপটি খুলুন।'
+          )}
+        </div>
+      )}
+
       {/* iOS Grouped Permission & Quick Actions */}
       <IOSSection
         title={t(lang, 'Permissions & Quick Test', 'অনুমতি ও টেস্ট')}
@@ -195,8 +210,8 @@ export const NotificationsPage: React.FC<NotificationsPageProps> = ({
             title={t(lang, 'Auto-Play Azan Audio', 'স্বয়ংক্রিয় আজান অডিও')}
             subtitle={t(
               lang,
-              'Plays Muazzin stream with offline harmonic chime fallback',
-              'নির্বাচিত মুয়াজ্জিনের আজান (অফলাইনে সফট চাইম)'
+              'Plays the selected Muazzin\'s recorded Azan (one voice at a time)',
+              'নির্বাচিত মুয়াজ্জিনের রেকর্ড করা আজান বাজবে (একবারে একটি কণ্ঠ)'
             )}
             rightElement={
               <IOSSwitch

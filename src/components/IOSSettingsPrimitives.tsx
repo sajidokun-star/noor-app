@@ -27,17 +27,85 @@ export const IOSSwitch: React.FC<IOSSwitchProps> = ({
     data-testid={testId}
     disabled={disabled}
     onClick={() => onChange(!checked)}
-    className={`relative inline-flex items-center shrink-0 w-[51px] h-[31px] rounded-full p-[2px] transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${
+    className={`group relative inline-flex items-center shrink-0 w-[51px] h-[31px] rounded-full p-[2px] transition-colors duration-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 ${
       disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
     } ${checked ? 'bg-[#34C759]' : 'bg-[#E9E9EA] dark:bg-[#39393D]'}`}
   >
+    {/* Spring thumb: overshoots slightly and stretches while pressed, like the native iOS switch */}
     <span
-      className={`pointer-events-none inline-block w-[27px] h-[27px] rounded-full bg-white shadow-[0_2px_6px_rgba(0,0,0,0.22)] transform transition-transform duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] ${
-        checked ? 'translate-x-[20px]' : 'translate-x-0'
+      className={`noor-switch-thumb pointer-events-none inline-block h-[27px] rounded-full bg-white shadow-[0_3px_8px_rgba(0,0,0,0.25),0_1px_1px_rgba(0,0,0,0.16)] transform transition-[transform,width] duration-[380ms] ease-[cubic-bezier(0.34,1.45,0.64,1)] w-[27px] group-active:w-[33px] ${
+        checked ? 'translate-x-[20px] group-active:translate-x-[14px]' : 'translate-x-0'
       }`}
     />
   </button>
 );
+
+interface IOSSegmentedOption<T extends string> {
+  value: T;
+  label: string;
+  icon?: React.ReactNode;
+}
+
+interface IOSSegmentedProps<T extends string> {
+  value: T;
+  options: IOSSegmentedOption<T>[];
+  onChange: (next: T) => void;
+  ariaLabel: string;
+  testId?: string;
+}
+
+/**
+ * iOS-style segmented control with a sliding spring thumb.
+ */
+export function IOSSegmented<T extends string>({
+  value,
+  options,
+  onChange,
+  ariaLabel,
+  testId,
+}: IOSSegmentedProps<T>) {
+  const index = Math.max(
+    0,
+    options.findIndex((o) => o.value === value)
+  );
+  return (
+    <div
+      role="radiogroup"
+      aria-label={ariaLabel}
+      data-testid={testId}
+      className="noor-seg relative grid p-[2px] rounded-[10px] bg-black/[0.06] dark:bg-white/10"
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+    >
+      <span
+        aria-hidden="true"
+        className="noor-seg-thumb absolute top-[2px] bottom-[2px] left-[2px] rounded-[8px] bg-white dark:bg-[#636366] shadow-[0_3px_8px_rgba(0,0,0,0.12),0_1px_1px_rgba(0,0,0,0.08)] transition-transform duration-[380ms] ease-[cubic-bezier(0.34,1.35,0.64,1)]"
+        style={{
+          width: `calc((100% - 4px) / ${options.length})`,
+          transform: `translateX(${index * 100}%)`,
+        }}
+      />
+      {options.map((option) => {
+        const selected = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            data-testid={testId ? `${testId}-${option.value}` : undefined}
+            onClick={() => onChange(option.value)}
+            className={`${
+              selected ? 'noor-seg-active text-zinc-900 dark:text-white' : 'text-zinc-500 dark:text-zinc-400'
+            } relative z-10 min-h-[32px] px-2 rounded-[8px] text-[13px] font-semibold inline-flex items-center justify-center gap-1.5 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-emerald-500`}
+          >
+            {option.icon}
+            <span className="truncate">{option.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 interface IOSSectionProps {
   title?: string;

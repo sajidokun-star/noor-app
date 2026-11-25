@@ -13,6 +13,7 @@ import {
   LogOut,
   Moon,
   RotateCcw,
+  Sparkles,
   Sun,
   Upload,
   UserPlus,
@@ -32,7 +33,7 @@ import {
 import { formatNum, t } from '../utils/i18n';
 import { PageHeader } from './PageHeader';
 import { NoorLogo, UserAvatarBadge } from './NoorLogo';
-import { IOSRow, IOSSection, IOSSwitch } from './IOSSettingsPrimitives';
+import { IOSRow, IOSSection, IOSSegmented, IOSSwitch } from './IOSSettingsPrimitives';
 
 interface ProfilePageProps {
   state: AppPersistedState;
@@ -456,28 +457,54 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           title={t(lang, 'Appearance & Language', 'থিম ও ভাষা')}
           footer={t(
             lang,
-            'Light Mode uses soft iOS tones; Dark Mode uses true black.',
-            'লাইট মোডে আরামদায়ক সাদা ও ডার্ক মোডে গভীর কালো থিম ব্যবহৃত হয়।'
+            'Light uses soft iOS tones, AMOLED Dark uses true black, and Fancy is a royal velvet & gold theme.',
+            'লাইট মোডে আরামদায়ক সাদা, AMOLED ডার্কে গভীর কালো এবং ফ্যান্সি মোডে রয়্যাল ভেলভেট ও সোনালি থিম ব্যবহৃত হয়।'
           )}
         >
-          <IOSRow
-            icon={state.theme === 'dark' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-            iconBg={state.theme === 'dark' ? 'bg-indigo-600' : 'bg-amber-500'}
-            title={t(lang, 'Dark Mode', 'ডার্ক মোড')}
-            subtitle={
-              state.theme === 'dark'
-                ? t(lang, 'Pure Black Theme Active', 'ডার্ক থিম সক্রিয়')
-                : t(lang, 'Light iOS Theme Active', 'লাইট থিম সক্রিয়')
-            }
-            rightElement={
-              <IOSSwitch
-                checked={state.theme === 'dark'}
-                onChange={(isDark) => onUpdateState({ theme: isDark ? 'dark' : 'light' })}
-                ariaLabel="Toggle Dark Mode"
-                testId="profile-theme-switch"
-              />
-            }
-          />
+          <div className="px-4 py-3.5 space-y-3">
+            <div className="flex items-center gap-3">
+              <span
+                className={`w-7 h-7 rounded-[7px] flex items-center justify-center text-white shrink-0 ${
+                  state.theme === 'fancy'
+                    ? 'bg-fuchsia-800'
+                    : state.theme === 'dark'
+                    ? 'bg-indigo-600'
+                    : 'bg-amber-500'
+                }`}
+              >
+                {state.theme === 'fancy' ? (
+                  <Sparkles className="w-4 h-4" />
+                ) : state.theme === 'dark' ? (
+                  <Moon className="w-4 h-4" />
+                ) : (
+                  <Sun className="w-4 h-4" />
+                )}
+              </span>
+              <div className="min-w-0">
+                <p className="text-[15px] font-medium text-zinc-900 dark:text-white">
+                  {t(lang, 'Theme', 'থিম')}
+                </p>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  {state.theme === 'fancy'
+                    ? t(lang, 'Royal Velvet & Gold Active', 'রয়্যাল ভেলভেট ও গোল্ড সক্রিয়')
+                    : state.theme === 'dark'
+                    ? t(lang, 'AMOLED Pure Black Active', 'AMOLED ডার্ক থিম সক্রিয়')
+                    : t(lang, 'Light iOS Theme Active', 'লাইট থিম সক্রিয়')}
+                </p>
+              </div>
+            </div>
+            <IOSSegmented
+              value={state.theme}
+              onChange={(theme) => onUpdateState({ theme })}
+              ariaLabel={t(lang, 'Choose theme', 'থিম বেছে নিন')}
+              testId="profile-theme-segmented"
+              options={[
+                { value: 'light', label: t(lang, 'Light', 'লাইট') },
+                { value: 'dark', label: t(lang, 'AMOLED', 'ডার্ক') },
+                { value: 'fancy', label: t(lang, 'Fancy', 'ফ্যান্সি') },
+              ]}
+            />
+          </div>
           <IOSRow
             icon={<Globe className="w-4 h-4" />}
             iconBg="bg-[#007AFF]"
@@ -511,18 +538,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                 checked={state.tajweedEnabled}
                 onChange={(next) => onUpdateState({ tajweedEnabled: next })}
                 ariaLabel="Toggle Color-Coded Tajweed"
-              />
-            }
-          />
-          <IOSRow
-            icon={<CircleDot className="w-4 h-4" />}
-            iconBg="bg-amber-500"
-            title={t(lang, 'Tasbih Sound Effects', 'তাসবীহ শব্দ')}
-            rightElement={
-              <IOSSwitch
-                checked={state.tasbihSound}
-                onChange={(next) => onUpdateState({ tasbihSound: next })}
-                ariaLabel="Toggle Tasbih Sound"
               />
             }
           />
